@@ -87,7 +87,7 @@ public class DefineDividerItem extends RecyclerView.ItemDecoration {
             Log.e("====", "childLayout布局：：" + parent.getChildLayoutPosition(child) + "childAdapter布局：：" + parent.getChildAdapterPosition(child));
             //子View的测量高度
             int childMeasuredHeight = child.getMeasuredHeight();
-            int bottom = this.mBounds.bottom + Math.round(child.getTranslationY()) - childMeasuredHeight;
+            int bottom = this.mBounds.bottom + - childMeasuredHeight;
             int top = bottom - this.mDivider.getIntrinsicHeight() - childMeasuredHeight;//-child.getMeasuredHeight()
             //将mBounds的位置信息再传递给mDivider的Bounds
             this.mDivider.setBounds(left, top, right, bottom);
@@ -101,11 +101,39 @@ public class DefineDividerItem extends RecyclerView.ItemDecoration {
     /**
      * 绘制水平线
      *
-     * @param c
+     * @param canvas
      * @param parent
      */
-    private void drawHorizontal(Canvas c, RecyclerView parent) {
+    private void drawHorizontal(Canvas canvas, RecyclerView parent) {
+        canvas.save();
+        int top;
+        int bottom;
+        if (parent.getClipToPadding()) {
+            top = parent.getPaddingTop();
+            bottom = parent.getHeight() - parent.getPaddingBottom();
+            canvas.clipRect(parent.getLeft(), top, parent.getRight() - parent.getPaddingRight(), bottom);
+        } else {
+            top = 0;
+            bottom = parent.getHeight();
+        }
 
+        int childCount = parent.getChildCount();
+
+        for (int i = 0; i < childCount; ++i) {
+            View child = parent.getChildAt(i);
+            parent.getDecoratedBoundsWithMargins(child, this.mBounds);
+            Log.e("====", "childLayout布局：：" + parent.getChildLayoutPosition(child) + "childAdapter布局：：" + parent.getChildAdapterPosition(child));
+            //子View的测量宽度
+            int measuredWidth = child.getMeasuredWidth();
+            int right = this.mBounds.right - measuredWidth;
+            int left = right - this.mDivider.getIntrinsicWidth() - measuredWidth;//-child.getMeasuredHeight()
+            //将mBounds的位置信息再传递给mDivider的Bounds
+            this.mDivider.setBounds(left, top, right, bottom);
+            //绘制mDivider
+            this.mDivider.draw(canvas);
+        }
+
+        canvas.restore();
     }
 
 
@@ -124,14 +152,48 @@ public class DefineDividerItem extends RecyclerView.ItemDecoration {
         int childCount = layoutManager.getChildCount();
         RecyclerView.Adapter parentAdapter = parent.getAdapter();
         Log.e("====", childCount + "::getItemOffsets::" + position + "::getItemOffsets::" + parentAdapter.getItemCount());
+        int totalChildCount = parentAdapter.getItemCount() - 1;
         //获取mDivider的内在高度
-        int intrinsicHeight = mDivider.getIntrinsicHeight();
-        Log.e("====", "内在高度" + intrinsicHeight);
-        if (position == parentAdapter.getItemCount() - 1) {
-            //保证最后一个条目距离屏幕底部也有间隔
-            outRect.set(0, intrinsicHeight, 0, intrinsicHeight);
+        if (mOrientation == VERTICAL) {
+            int intrinsicHeight = mDivider.getIntrinsicHeight();
+            Log.e("====", "内在高度" + intrinsicHeight);
+            getItemVerticalOffsets(outRect, intrinsicHeight, position, totalChildCount);
         } else {
-            outRect.set(0, intrinsicHeight, 0, 0);
+            int intrinsicWidth = mDivider.getIntrinsicWidth();
+            getItemHorizontalOffsets(outRect, intrinsicWidth, position, totalChildCount);
+        }
+
+    }
+
+    /**
+     * 获取水平的条目偏移
+     *
+     * @param outRect
+     * @param offsets
+     * @param position
+     * @param totalChildCount
+     */
+    private void getItemHorizontalOffsets(Rect outRect, int offsets, int position, int totalChildCount) {
+        if (position == totalChildCount) {
+            //保证最后一个条目距离屏幕底部也有间隔
+            outRect.set(offsets, 0, offsets, 0);
+        } else {
+            outRect.set(offsets, 0, 0, 0);
+        }
+    }
+
+    /**
+     * 获取垂直的条目偏移
+     *
+     * @param outRect
+     * @param offsets 偏移度
+     */
+    private void getItemVerticalOffsets(Rect outRect, int offsets, int position, int totalChildCount) {
+        if (position == totalChildCount) {
+            //保证最后一个条目距离屏幕底部也有间隔
+            outRect.set(0, offsets, 0, offsets);
+        } else {
+            outRect.set(0, offsets, 0, 0);
         }
     }
 }
